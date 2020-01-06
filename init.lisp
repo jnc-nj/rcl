@@ -71,43 +71,46 @@
   (setf *r-interactive* 0))
 
 (defun r-init ()
-  (ecase *r-session*
-    (:running (warn "R already running"))
-    (:stopped (error "R was already stopped, restarting is not supported"))
-    (:inactive
-     (start-r-runner)
-     (start-unprotect-runner)
-     (set-r-home *r-home*)
-     (disable-signal-handling)
-     (cffi:with-foreign-object (argv :pointer 5)
-       (setf (cffi:mem-aref argv :pointer 0)
-	     (cffi:foreign-string-alloc "rcl")
-	     ;; slave: make R run as quietly as possible (>quiet/silent?)
-	     (cffi:mem-aref argv :pointer 1) 
-	     (cffi:foreign-string-alloc "--slave") 
-	     ;; vanilla: no-save, no-restore, no-environ, no-site-file, no-init-file
-	     (cffi:mem-aref argv :pointer 2) 
-	     (cffi:foreign-string-alloc "--vanilla")
-	     (cffi:mem-aref argv :pointer 3)
-	     (cffi:foreign-string-alloc "--no-readline")
-	     (cffi:mem-aref argv :pointer 4) 
-	     (cffi:foreign-string-alloc "--max-ppsize=50000"))
-       (rf-initialize-r 5 argv))
-     ;; the first version called rf-initembeddedr, resulting in
-     ;; "C stack usage too close to the limit" messages in
-     ;; ClozureCL, CMUCL, SBCL, and Lispworks on Linux/MacOSX
-     ;; and nothing worked afterwards (... not a valid function, 
-     ;; and *globalenv* had named=0 and mark=0 instead of 2 and 1)
-     ;; As it's done in RCLG we need to disable stack-checking
-     ;; inside that function, which is defined in Rembedded.c as
-     ;; Rf_initialize_R, R_Interactive=TRUE (Unix), setup_Rmainloop
-     (disable-stack-checking)
-     (ensure-non-interactive)
-     (setup-rmainloop)
-     ;;(run-rmainloop)
-     ;;(r-repldllinit)
-     (setf *r-session* :running)))
-  *r-session*)
+  (cond ((probe-file (concatenate 'string *r-lib-path* *r-lib-name* *r-lib-extension*))
+	 (ecase *r-session*
+	   (:running (warn "R already running"))
+	   (:stopped (error "R was already stopped, restarting is not supported"))
+	   (:inactive
+	    (start-r-runner)
+	    (start-unprotect-runner)
+	    (set-r-home *r-home*)
+	    (disable-signal-handling)
+	    (cffi:with-foreign-object (argv :pointer 5)
+	      (setf (cffi:mem-aref argv :pointer 0)
+		    (cffi:foreign-string-alloc "rcl")
+		    ;; slave: make R run as quietly as possible (>quiet/silent?)
+		    (cffi:mem-aref argv :pointer 1) 
+		    (cffi:foreign-string-alloc "--slave") 
+		    ;; vanilla: no-save, no-restore, no-environ, no-site-file, no-init-file
+		    (cffi:mem-aref argv :pointer 2) 
+		    (cffi:foreign-string-alloc "--vanilla")
+		    (cffi:mem-aref argv :pointer 3)
+		    (cffi:foreign-string-alloc "--no-readline")
+		    (cffi:mem-aref argv :pointer 4) 
+		    (cffi:foreign-string-alloc "--max-ppsize=50000"))
+	      (rf-initialize-r 5 argv))
+	    ;; the first version called rf-initembeddedr, resulting in
+	    ;; "C stack usage too close to the limit" messages in
+	    ;; ClozureCL, CMUCL, SBCL, and Lispworks on Linux/MacOSX
+	    ;; and nothing worked afterwards (... not a valid function, 
+	    ;; and *globalenv* had named=0 and mark=0 instead of 2 and 1)
+	    ;; As it's done in RCLG we need to disable stack-checking
+	    ;; inside that function, which is defined in Rembedded.c as
+	    ;; Rf_initialize_R, R_Interactive=TRUE (Unix), setup_Rmainloop
+	    (disable-stack-checking)
+	    (ensure-non-interactive)
+	    (setup-rmainloop)
+	    ;;(run-rmainloop)
+	    ;;(r-repldllinit)
+	    (setf *r-session* :running)))
+	 *r-session*)
+	(t (error "Can't find library ~A in ~A, verify settings in config.lisp"
+		  (concatenate 'string *r-lib-name* *r-lib-extension*) *r-lib-path*))))
 
 (defun ensure-r (&rest libraries)
   "Starts an R session if required and loads all the specified packages."
