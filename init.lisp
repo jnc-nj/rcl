@@ -40,12 +40,7 @@
 (defvar *r-lib-loaded* (ffi:load-foreign-library "/Library/Frameworks/R.framework/Resources/lib/libR.dylib"))
 
 #-(and ecl (not dffi))
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar *r-lib-loaded* nil)
-  (unless *r-lib-loaded*
-    (pushnew *r-lib-path* cffi:*foreign-library-directories*)
-    (setf *r-lib-loaded* (cffi:load-foreign-library *r-lib*))))
-
+(defvar *r-lib-loaded* nil)
 (defvar *r-session* :inactive)
 
 (cffi:defcvar "R_SignalHandlers" 
@@ -72,6 +67,9 @@
 
 (defun r-init ()
   (cond ((probe-file (concatenate 'string *r-lib-path* *r-lib-name* *r-lib-extension*))
+	 (unless *r-lib-loaded*
+	   (pushnew *r-lib-path* cffi:*foreign-library-directories*)
+	   (setf *r-lib-loaded* (cffi:load-foreign-library *r-lib*)))
 	 (ecase *r-session*
 	   (:running (warn "R already running"))
 	   (:stopped (error "R was already stopped, restarting is not supported"))

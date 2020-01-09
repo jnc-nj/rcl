@@ -4,7 +4,9 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defvar *r-home* 
-    #+darwin "/Library/Frameworks/R.framework/Resources/"
+    #+darwin
+    "/usr/local/Cellar/r/3.6.1/lib/R/"
+    ;; "/Library/Frameworks/R.framework/Resources/"
     ;; homebrew alternative: brew install R --with-openblas --with-x11
     ;; #+darwin "/usr/local/Cellar/r/3.3.1_2/R.framework/Resources/" 
     #+windows "C:\\Program Files\\R\\R-3.3.1\\";;; ABCL won't work with forward slashes
